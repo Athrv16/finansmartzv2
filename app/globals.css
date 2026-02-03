@@ -169,3 +169,22 @@
   background-size: 200% 200%;
   animation: gradientMove 3s ease infinite;
 }
+
+
+
+@keyframes ticker {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 10s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}

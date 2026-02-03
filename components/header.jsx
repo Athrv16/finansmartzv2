@@ -4,7 +4,7 @@ import { checkUser } from '@/lib/checkUser'
 import HeaderClient from './HeaderClient'
 
 const Header = async () => {
-  await checkUser()
+  const user=await checkUser()
 
   return (
     <div className="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md z-50 border-b">
@@ -18,7 +18,16 @@ const Header = async () => {
             className="h-12 w-auto object-contain"
           />
         </Link>
-        <HeaderClient />
+       {/* CENTER: spacer always present */}
+        <div className="flex-1 flex justify-center">
+          {user && <MarketTicker />}
+        </div>
+
+        {/* RIGHT: actions */}
+        <div className="shrink-0">
+          <HeaderClient />
+        </div>
+
       </nav>
     </div>
   )
