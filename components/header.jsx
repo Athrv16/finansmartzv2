@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { checkUser } from '@/lib/checkUser'
 import HeaderClient from './HeaderClient'
+import MarketTicker from './MarketTicker'
 
 const Header = async () => {
   const user=await checkUser()
