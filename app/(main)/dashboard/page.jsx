@@ -10,6 +10,7 @@ import { logDisallowedDynamicError } from "next/dist/server/app-render/dynamic-r
 import DashboardOverview from "./_components/transaction-overview";
 import AssistantChat from "@/components/AssistantChat"; // Adjust path if needed
 import FloatingChat from "@/components/FloatingChat";
+import GmailConnectCard from "@/components/gmail-connect-card";
 
 
 async function DashboardPage() {
@@ -34,7 +35,8 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
         initialBudget={budgetData?.budget}
         currentExpenses={budgetData?.currentExpenses || 0}
       />
-    
+    <GmailConnectCard />
+
     {/* Overview */}
       <Suspense fallback={"Loading Overview..."}>
         <DashboardOverview 

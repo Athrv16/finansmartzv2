@@ -58,7 +58,8 @@ model Transaction{
   amount           Decimal
   description      String?
   date             DateTime
-  category         String           
+  category         String    
+  upiTransactionId String?  @unique     
   receiptUrl       String?
   isRecurring      Boolean           @default(false)
   recurringInterval RecurringInterval? // Only used if isRecurring is true

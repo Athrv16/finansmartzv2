@@ -4,6 +4,7 @@ const isProtectedRoute = createRouteMatcher([
     "/dashboard(.*)",
     "/account(.*)",
     "/transaction(.*)",
+    "/api/gmail/connect",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
