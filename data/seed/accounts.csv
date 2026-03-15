@@ -1,0 +1,3 @@
+name,type,balance,isDefault
+Primary Checking,CURRENT,125000.00,true
+Growth Savings,SAVINGS,84000.00,false
