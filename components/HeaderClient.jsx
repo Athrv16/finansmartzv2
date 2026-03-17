@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from './ui/button'
-import { Info, LayoutDashboard, PenBox } from 'lucide-react'
+import { Info, LayoutDashboard, PenBox, TrendingUp } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import ThemeToggle from './ThemeToggle'
 
@@ -22,6 +22,16 @@ export default function HeaderClient() {
           >
             <LayoutDashboard size={18} />
             <span className="hidden md:inline"> Dashboard</span>
+          </Button>
+        </Link>
+
+        <Link href="/investments">
+          <Button
+            variant="outline"
+            className={isActive('/investments') ? 'border-emerald-400 text-emerald-600 bg-emerald-50' : ''}
+          >
+            <TrendingUp size={18} />
+            <span className="hidden md:inline"> Investments</span>
           </Button>
         </Link>
 
