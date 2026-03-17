@@ -17,12 +17,24 @@ export async function POST(req) {
 
     const chatMessages = msgs.map(m => ({ role: m.role === 'user' ? 'user' : m.role === 'assistant' ? 'assistant' : 'system', content: m.content }))
 
+    const investmentGuardrails = [
+      "When discussing investment recommendations, first check for income/savings anomalies (e.g., negative savings rate) and ask the user to fix data before trusting recommendations.",
+      "If the user is in India, avoid US-only ETFs (e.g., VTI, SCHD, BND) and suggest Indian equivalents such as Nifty 50 Index Funds, HDFC Dividend Yield Fund, or Bharat Bond ETF.",
+      "For moderate risk, a 60% equity / 30% debt / 10% others allocation is a classic balanced portfolio.",
+      "Encourage building an emergency fund of 3–6 months of expenses before investing.",
+    ].join(" ");
+
+    const systemPrompt = {
+      role: "system",
+      content: investmentGuardrails,
+    };
+
     const OPENAI_KEY = process.env.OPENAI_API_KEY
     if (!OPENAI_KEY) return NextResponse.json({ error: 'Missing OPENAI_API_KEY env var' }, { status: 500 })
 
     const payload = {
       model: 'gpt-4o-mini',
-      messages: chatMessages,
+      messages: [systemPrompt, ...chatMessages],
       temperature: 0.2,
       max_tokens: 800,
     }
