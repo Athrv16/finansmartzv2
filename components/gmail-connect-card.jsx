@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
@@ -8,6 +8,8 @@ import { Mail, CheckCircle, Loader2 } from "lucide-react";
 export default function GmailConnectCard() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const syncTriggeredRef = useRef(false);
 
   useEffect(() => {
     async function checkStatus() {
@@ -24,6 +26,32 @@ export default function GmailConnectCard() {
 
     checkStatus();
   }, []);
+
+  useEffect(() => {
+    if (loading || !connected || syncTriggeredRef.current) return;
+    syncTriggeredRef.current = true;
+
+    setSyncing(true);
+    fetch("/api/gmail/sync-now", { method: "POST" })
+      .catch((err) => {
+        console.error("Gmail sync-now error", err);
+      })
+      .finally(() => {
+        setSyncing(false);
+      });
+  }, [connected, loading]);
+
+  const handleSyncNow = async () => {
+    if (syncing) return;
+    try {
+      setSyncing(true);
+      await fetch("/api/gmail/sync-now", { method: "POST" });
+    } catch (err) {
+      console.error("Gmail sync-now error", err);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleConnect = () => {
     window.location.href = "/api/gmail/connect";
@@ -68,14 +96,24 @@ export default function GmailConnectCard() {
             : "Secure OAuth connection. We only read transaction-related emails."}
         </div>
         {connected ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDisconnect}
-            disabled={loading}
-          >
-            Disconnect
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncNow}
+              disabled={loading || syncing}
+            >
+              {syncing ? "Syncing..." : "Sync now"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDisconnect}
+              disabled={loading || syncing}
+            >
+              Disconnect
+            </Button>
+          </div>
         ) : (
           <Button size="sm" onClick={handleConnect} disabled={loading}>
             Connect Gmail
