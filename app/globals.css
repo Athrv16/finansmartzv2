@@ -49,6 +49,7 @@
 }
 
 :root {
+  --header-height: 5rem;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -243,7 +244,22 @@
 }
 
 .page-shell {
-  @apply rounded-3xl border border-slate-200/60 bg-white/85 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70;
+  @apply bg-transparent;
+}
+
+:root {
+  --sidebar-width: 16rem;
+}
+
+.main-layout-shell {
+  padding-left: 0;
+}
+
+@media (min-width: 1024px) {
+  .main-layout-shell {
+    padding-left: var(--sidebar-width);
+    transition: padding-left 300ms ease;
+  }
 }
 
 .section-title {

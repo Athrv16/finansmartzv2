@@ -2,8 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCategoryName, normalizeCategoryId } from "@/data/categories";
 import { endOfDay, format, startOfDay, subDays } from "date-fns";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const DATE_RANGES = {
@@ -16,17 +17,53 @@ const DATE_RANGES = {
 
 const AccountChart = ({ transactions }) => {
   const [dateRange, setDateRange] = useState("1M");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const filteredData = useMemo(() => {
+  const dateFilteredTransactions = useMemo(() => {
     const range = DATE_RANGES[dateRange];
     const now = new Date();
     const startDate = range.days ? startOfDay(subDays(now, range.days)) : startOfDay(new Date(0));
 
-    const filtered = transactions.filter(
+    return transactions.filter(
       (t) => new Date(t.date) >= startDate && new Date(t.date) <= endOfDay(now)
     );
+  }, [transactions, dateRange]);
 
-    const grouped = filtered.reduce((acc, transaction) => {
+  const availableCategories = useMemo(() => {
+    const categories = new Map();
+    dateFilteredTransactions.forEach((transaction) => {
+      const categoryId = normalizeCategoryId(transaction.category);
+      if (!categories.has(categoryId)) {
+        categories.set(categoryId, getCategoryName(categoryId));
+      }
+    });
+
+    return Array.from(categories.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [dateFilteredTransactions]);
+
+  useEffect(() => {
+    if (categoryFilter === "all") {
+      return;
+    }
+    const hasCategory = availableCategories.some((category) => category.id === categoryFilter);
+    if (!hasCategory) {
+      setCategoryFilter("all");
+    }
+  }, [availableCategories, categoryFilter]);
+
+  const categoryFilteredTransactions = useMemo(() => {
+    if (categoryFilter === "all") {
+      return dateFilteredTransactions;
+    }
+    return dateFilteredTransactions.filter(
+      (transaction) => normalizeCategoryId(transaction.category) === categoryFilter
+    );
+  }, [dateFilteredTransactions, categoryFilter]);
+
+  const filteredData = useMemo(() => {
+    const grouped = categoryFilteredTransactions.reduce((acc, transaction) => {
       const date = format(new Date(transaction.date), "MMM dd");
 
       if (!acc[date]) {
@@ -43,7 +80,7 @@ const AccountChart = ({ transactions }) => {
     }, {});
 
     return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [transactions, dateRange]);
+  }, [categoryFilteredTransactions]);
 
   const totals = useMemo(
     () =>
@@ -61,18 +98,33 @@ const AccountChart = ({ transactions }) => {
     <Card className="border-border/60 bg-white/85 shadow-sm dark:bg-slate-900/70">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/60 pb-4">
         <CardTitle className="text-base font-semibold">Transaction Overview</CardTitle>
-        <Select defaultValue={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Select Range" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(DATE_RANGES).map(([key, { label }]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {availableCategories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Select Range" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(DATE_RANGES).map(([key, { label }]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="pt-5">
         <div className="mb-6 grid gap-3 sm:grid-cols-3">

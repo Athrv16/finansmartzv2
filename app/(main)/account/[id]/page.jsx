@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
 import TransactionTable from "../_components/transaction-table";
 import AccountChart from "../_components/account-chart";
+import ExportCenter from "../../dashboard/_components/export-center";
 import { BarLoader } from "react-spinners";
-import { ArrowDownRight, ArrowUpRight, Landmark } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Landmark, HeartPulse } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const AccountPage = async ({ params }) => {
@@ -23,6 +24,69 @@ const AccountPage = async ({ params }) => {
     .filter((tx) => tx.type === "EXPENSE")
     .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
+  const now = new Date();
+  const startCurrent = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+  const startPrevious = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 59);
+  const endPrevious = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+
+  const currentWindow = transactions.filter(
+    (tx) => new Date(tx.date) >= startCurrent && new Date(tx.date) <= now
+  );
+  const previousWindow = transactions.filter(
+    (tx) => new Date(tx.date) >= startPrevious && new Date(tx.date) <= endPrevious
+  );
+
+  const sumByType = (items, type) =>
+    items.filter((tx) => tx.type === type).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+  const currentIncome = sumByType(currentWindow, "INCOME");
+  const currentExpense = sumByType(currentWindow, "EXPENSE");
+  const previousIncome = sumByType(previousWindow, "INCOME");
+  const previousExpense = sumByType(previousWindow, "EXPENSE");
+
+  const currentNet = currentIncome - currentExpense;
+  const previousNet = previousIncome - previousExpense;
+  const cashflowDelta = currentNet - previousNet;
+
+  const expenseAmounts = currentWindow
+    .filter((tx) => tx.type === "EXPENSE")
+    .map((tx) => Number(tx.amount || 0));
+
+  const meanExpense =
+    expenseAmounts.length > 0
+      ? expenseAmounts.reduce((sum, value) => sum + value, 0) / expenseAmounts.length
+      : 0;
+
+  const variance =
+    expenseAmounts.length > 1
+      ? expenseAmounts.reduce((sum, value) => sum + Math.pow(value - meanExpense, 2), 0) /
+        (expenseAmounts.length - 1)
+      : 0;
+
+  const volatility = Math.sqrt(variance);
+  const volatilityScore = meanExpense > 0 ? Math.max(0, 100 - (volatility / meanExpense) * 100) : 50;
+
+  const recurringExpense = currentWindow
+    .filter((tx) => tx.type === "EXPENSE" && tx.isRecurring)
+    .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const recurringBurden = currentIncome > 0 ? recurringExpense / currentIncome : 0;
+  const burdenScore = currentIncome > 0 ? Math.max(0, 100 - recurringBurden * 100) : 50;
+
+  const cashflowScore = Math.max(0, Math.min(100, 50 + (cashflowDelta / Math.max(1, currentExpense)) * 50));
+  const healthScore = Math.round(
+    0.4 * cashflowScore + 0.35 * volatilityScore + 0.25 * burdenScore
+  );
+  const healthLabel =
+    healthScore >= 80 ? "Healthy" : healthScore >= 60 ? "Stable" : healthScore >= 40 ? "Watch" : "Risk";
+  const healthColor =
+    healthScore >= 80
+      ? "text-emerald-600"
+      : healthScore >= 60
+      ? "text-blue-600"
+      : healthScore >= 40
+      ? "text-amber-600"
+      : "text-red-600";
+
   return (
     <div className="space-y-8 px-5 pb-8 animate-fade-in" style={{ animation: 'fadeIn 0.7s cubic-bezier(0.4,0,0.2,1)' }}>
       <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-50 via-white to-slate-100 p-6 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 transition-all duration-500 ease-out hover:shadow-xl">
@@ -39,7 +103,7 @@ const AccountPage = async ({ params }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <Card className="bg-white/80 shadow-sm dark:bg-slate-900/70 transition-transform duration-300 hover:scale-105 hover:shadow-lg">
             <CardContent className="flex items-center justify-between p-4">
               <div>
@@ -67,6 +131,17 @@ const AccountPage = async ({ params }) => {
               <ArrowDownRight className="h-5 w-5 text-red-600 dark:text-red-300" />
             </CardContent>
           </Card>
+          <Card className="bg-white/80 shadow-sm dark:bg-slate-900/70 transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Account Health</p>
+                <p className={`text-lg font-semibold ${healthColor}`}>
+                  {healthScore} • {healthLabel}
+                </p>
+              </div>
+              <HeartPulse className={`h-5 w-5 ${healthColor}`} />
+            </CardContent>
+          </Card>
         </div>
         </div>
       </section>
@@ -84,6 +159,8 @@ const AccountPage = async ({ params }) => {
       <Suspense fallback={<BarLoader width="100%" color="#9333ea" />}>
         <AccountChart transactions={transactions} />
       </Suspense>
+
+      <ExportCenter />
 
       <Suspense fallback={<BarLoader width="100%" color="#9333ea" />}>
         <TransactionTable transactions={transactions} />

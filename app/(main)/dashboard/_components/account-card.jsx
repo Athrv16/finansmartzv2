@@ -130,13 +130,25 @@ const AccountCard = ({ account }) => {
     <Drawer open={editOpen} onOpenChange={setEditOpen}>
       <Card className="group relative overflow-hidden border-border/60 bg-white/85 transition-all duration-300 hover:-translate-y-1 hover:border-blue-300/60 hover:shadow-xl dark:bg-slate-900/70 dark:hover:border-blue-500/40">
         <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-blue-200/30 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:bg-blue-500/10" />
-        {/* Edit and Delete icons, visible only on hover, top right, properly aligned */}
-        <div className="absolute top-2 right-2 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button size="icon" variant="ghost" onClick={handleEdit} aria-label="Edit account">
-            <Pencil className="w-5 h-5 text-blue-500" />
+        {/* Edit and Delete icons, centered on hover */}
+        <div className="pointer-events-none absolute inset-x-0 top-2 z-20 flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleEdit}
+            aria-label="Edit account"
+            className="pointer-events-auto"
+          >
+            <Pencil className="h-5 w-5 text-blue-500" />
           </Button>
-          <Button size="icon" variant="ghost" onClick={handleDelete} aria-label="Delete account">
-            <Trash className="w-5 h-5 text-red-500" />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleDelete}
+            aria-label="Delete account"
+            className="pointer-events-auto"
+          >
+            <Trash className="h-5 w-5 text-red-500" />
           </Button>
         </div>
         <Link href={`/account/${id}`}>

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { categoryColors } from '@/data/categories';
+import { getCategoryColor, getCategoryName, normalizeCategoryId } from '@/data/categories';
 import useFetch from '@/hooks/use-fetch';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { format } from 'date-fns';
@@ -43,6 +43,7 @@ export const TransactionTable = ({ transactions }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [typeFilter, setTypeFilter] = useState("");
     const [recurringFilter, setRecurringFilter] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("all");
     const deferredSearchTerm = useDeferredValue(searchTerm);
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -56,6 +57,20 @@ export const TransactionTable = ({ transactions }) => {
 
 
 
+
+    const availableCategories = useMemo(() => {
+        const categories = new Map();
+        transactions.forEach((transaction) => {
+            const categoryId = normalizeCategoryId(transaction.category);
+            if (!categories.has(categoryId)) {
+                categories.set(categoryId, getCategoryName(categoryId));
+            }
+        });
+
+        return Array.from(categories.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [transactions]);
 
     const filteredAndSortedTransactions = useMemo(() => {
         let result = [...transactions];
@@ -78,6 +93,12 @@ export const TransactionTable = ({ transactions }) => {
             result = result.filter((transaction) => transaction.type === typeFilter);
         }
 
+        if (categoryFilter !== "all") {
+            result = result.filter(
+                (transaction) => normalizeCategoryId(transaction.category) === categoryFilter
+            );
+        }
+
         //Apply sorting
         result.sort((a, b) => {
             let comparison = 0
@@ -92,7 +113,7 @@ export const TransactionTable = ({ transactions }) => {
                     break;
 
                 case "category":
-                    comparison = a.category.localeCompare(b.category);
+                    comparison = getCategoryName(a.category).localeCompare(getCategoryName(b.category));
                     break;
 
                 default:
@@ -104,7 +125,7 @@ export const TransactionTable = ({ transactions }) => {
 
         return result;
     }, [
-        transactions, deferredSearchTerm, typeFilter, recurringFilter, sortConfig,
+        transactions, deferredSearchTerm, typeFilter, recurringFilter, categoryFilter, sortConfig,
     ]);
 
     const totalPages = Math.max(1, Math.ceil(filteredAndSortedTransactions.length / rowsPerPage));
@@ -116,7 +137,7 @@ export const TransactionTable = ({ transactions }) => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [deferredSearchTerm, typeFilter, recurringFilter, sortConfig, rowsPerPage]);
+    }, [deferredSearchTerm, typeFilter, recurringFilter, categoryFilter, sortConfig, rowsPerPage]);
 
     useEffect(() => {
         if (currentPage > totalPages) {
@@ -173,6 +194,7 @@ export const TransactionTable = ({ transactions }) => {
         setSearchTerm("");
         setTypeFilter("");
         setRecurringFilter("");
+        setCategoryFilter("all");
         setSelectedIds([]);
     };
 
@@ -217,6 +239,19 @@ export const TransactionTable = ({ transactions }) => {
                         </SelectContent>
                     </Select>
 
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {availableCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     {selectedIds.length > 0 && (
                         <div className='flex items-center gap-2'>
@@ -228,7 +263,7 @@ export const TransactionTable = ({ transactions }) => {
                         </div>)}
 
 
-                    {(searchTerm || typeFilter || recurringFilter) && (
+                    {(searchTerm || typeFilter || recurringFilter || categoryFilter !== "all") && (
                         <Button variant="outline
                                 " size="icon" onClick={handleClearFilters}
                             title="Clear Filters">
@@ -311,10 +346,10 @@ export const TransactionTable = ({ transactions }) => {
                                     <TableCell>{transaction.description}</TableCell>
                                     <TableCell className="capitalize">
                                         <span style={{
-                                            background: categoryColors[transaction.category],
+                                            background: getCategoryColor(transaction.category),
                                         }}
                                             className="px-2 py-1 rounded text-white text-sm">
-                                            {transaction.category}
+                                            {getCategoryName(transaction.category)}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right" style={{

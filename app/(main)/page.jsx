@@ -4,18 +4,17 @@ import {
   featuresData,
   howItWorksData,
   statsData,
-  testimonialsData,
 } from "@/data/landing";
 import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-
-
 export default function Home() {
   return (
-    <div className="space-y-16 md:space-y-20 animate-fade-in" style={{ animation: 'fadeIn 0.7s cubic-bezier(0.4,0,0.2,1)' }}>
+    <div
+      className="animate-fade-in space-y-16 md:space-y-20"
+      style={{ animation: "fadeIn 0.7s cubic-bezier(0.4,0,0.2,1)" }}
+    >
       <HeroSection />
 
       <section>
@@ -47,7 +46,8 @@ export default function Home() {
               A modern finance stack that feels effortless
             </h2>
             <p className="mt-3 text-sm text-muted-foreground md:text-base">
-              Automations, insights, and guardrails working together so you can focus on the next move.
+              Automations, insights, and guardrails working together so you can
+              focus on the next move.
             </p>
           </div>
           <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -78,12 +78,16 @@ export default function Home() {
               Your money, orchestrated in three steps
             </h2>
             <p className="mt-3 text-sm text-muted-foreground md:text-base">
-              Connect, analyze, and act with automated workflows designed for clarity.
+              Connect, analyze, and act with automated workflows designed for
+              clarity.
             </p>
           </div>
           <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3">
             {howItWorksData.map((step, index) => (
-              <div key={index} className="rounded-2xl border border-white/60 bg-white/70 p-6 text-center shadow-sm dark:border-slate-700/60 dark:bg-slate-900/70">
+              <div
+                key={index}
+                className="rounded-2xl border border-white/60 bg-white/70 p-6 text-center shadow-sm dark:border-slate-700/60 dark:bg-slate-900/70"
+              >
                 <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10">
                   {step.icon}
                 </div>
@@ -97,45 +101,46 @@ export default function Home() {
         </div>
       </section>
 
-                      {/* <section className="py-20">
-                        <div className="container mx-auto px-4">
-                <h2 className="text-3xl font-bold text-center mb-16">
-                        What our users say                 </h2>
-                <div className="grid grid-cols-1 md: grid-cols-3 gap-8">
-                  {testimonialsData.map((testimonial,index)=>(
-                    <Card key={index} className="p-6">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center mb-4">
-                      <Image 
+      {/* <section className="py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-16">
+            What our users say
+          </h2>
+          <div className="grid grid-cols-1 md: grid-cols-3 gap-8">
+            {testimonialsData.map((testimonial,index)=>(
+              <Card key={index} className="p-6">
+                <CardContent className="pt-4">
+                  <div className="flex items-center mb-4">
+                    <Image
                       src={testimonial.image}
                       alt={testimonial.name}
                       width={40}
                       height={40}
                       className="rounded-full"
-                      />
-                      <div className="ml-4">
-                        <div className = "font-semibold">{testimonial.name}</div>
-                        <div className = "test-sm text-gray-600">{testimonial.role}</div>
-                      </div>
+                    />
+                    <div className="ml-4">
+                      <div className="font-semibold">{testimonial.name}</div>
+                      <div className="test-sm text-gray-600">{testimonial.role}</div>
                     </div>
-                    <p className = "text-gray-600">{testimonial.quote}</p>
-
-                  </CardContent>
-                </Card>
-                  ))}
-                </div>
-              </div>
-                      </section> */}
+                  </div>
+                  <p className="text-gray-600">{testimonial.quote}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section> */}
 
       <section className="relative overflow-hidden rounded-3xl py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600" />
-        <div className="absolute inset-0 -z-10 opacity-30 grid-fade" />
+        <div className="grid-fade absolute inset-0 -z-10 opacity-30" />
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 text-2xl font-semibold text-white md:text-3xl">
             Build confidence in every financial decision
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-sm text-white/80 md:text-base">
-            Join thousands of users who are already managing their money smarter with FinanSmartz.
+            Join thousands of users who are already managing their money
+            smarter with FinanSmartz.
           </p>
           <Link href="/dashboard">
             <Button

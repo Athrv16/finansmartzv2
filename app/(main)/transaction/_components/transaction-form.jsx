@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { normalizeCategoryId } from "@/data/categories";
 import useFetch from "@/hooks/use-fetch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -40,7 +41,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
             amount: initialData.amount.toString(),
             description: initialData.description,
             accountId: initialData.accountId,
-            category: initialData.category,
+            category: normalizeCategoryId(initialData.category),
             date: new Date(initialData.date),
             isRecurring: initialData.isRecurring,
             ...(initialData.recurringInterval && {
@@ -75,6 +76,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     const formData = {
       ...data,
       amount: parseFloat(data.amount),
+      category: normalizeCategoryId(data.category),
     };
 
     if (editMode) {
@@ -107,8 +109,11 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     }
 
     if (scannedData.category) {
+      const normalizedScannedCategory = normalizeCategoryId(scannedData.category);
       const matchedCategory = categories.find(
-        (c) => c.id === scannedData.category || c.name.toLowerCase() === scannedData.category.toLowerCase()
+        (c) =>
+          c.id === normalizedScannedCategory ||
+          c.name.toLowerCase() === String(scannedData.category).toLowerCase()
       );
       if (matchedCategory) {
         setValue("category", matchedCategory.id);

@@ -24,6 +24,7 @@ model User {
   transactions  Transaction[]
   accounts      Account[]
   budgets       Budget[]
+  bills         Bill[]
   chatMessages  ChatMessage[]
   goals         Goal[]
   createdAt     DateTime      @default(now())
@@ -66,6 +67,7 @@ model Transaction{
   recurringInterval RecurringInterval? // Only used if isRecurring is true
   nextRecurringDate DateTime?         // Next date for recurring transaction
   lastProcessed    DateTime?         // Last time this recurring transaction was processed
+  lastReminderSent DateTime?         // Last bill reminder sent for this recurring transaction
   status           TransactionStatus  @default(COMPLETED)
   userId           String
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -109,6 +111,24 @@ model Budget{
 
   @@index([userId])
   @@map("budgets")
+}
+
+model Bill {
+  id               String            @id @default(uuid())
+  name             String
+  amount           Decimal
+  dueDate          DateTime
+  nextDueDate      DateTime
+  isRecurring      Boolean           @default(false)
+  recurringInterval RecurringInterval?
+  lastReminderSent DateTime?
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([userId])
+  @@map("bills")
 }
 
 model Goal {

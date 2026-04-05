@@ -4,7 +4,11 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { upiDb } from "@/lib/upi-db";
 import { db as prisma } from "@/lib/prisma";
-import { inferUpiCategory } from "@/lib/upi-category";
+import {
+  createUserCategoryModel,
+  inferUpiCategory,
+  selectCategoryTrainingExamples,
+} from "@/lib/upi-category";
 
 export async function POST() {
   try {
@@ -39,6 +43,25 @@ export async function POST() {
       );
     }
 
+    const historicalTransactions = await prisma.transaction.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        description: true,
+        category: true,
+        type: true,
+        upiTransactionId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    });
+
+    const categoryModel = createUserCategoryModel(
+      selectCategoryTrainingExamples(historicalTransactions)
+    );
+
     // ⭐ Fetch Neon UPI transactions
     const neonTx = await upiDb.query(
       `
@@ -57,7 +80,8 @@ export async function POST() {
 
         const category = inferUpiCategory(
           tx.merchant || "",
-          tx.type || "DEBIT"
+          tx.type || "DEBIT",
+          categoryModel
         );
 
         // ⭐ UPSERT → prevents duplicates completely
@@ -95,9 +119,46 @@ export async function POST() {
       }
     }
 
+    const importedTransactions = await prisma.transaction.findMany({
+      where: {
+        userId: user.id,
+        upiTransactionId: { not: null },
+      },
+      select: {
+        id: true,
+        description: true,
+        type: true,
+        category: true,
+      },
+    });
+
+    let recategorized = 0;
+
+    for (const tx of importedTransactions) {
+      try {
+        const nextCategory = inferUpiCategory(
+          tx.description || "",
+          tx.type,
+          categoryModel
+        );
+
+        if (!nextCategory || nextCategory === tx.category) continue;
+
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: { category: nextCategory },
+        });
+
+        recategorized += 1;
+      } catch (txErr) {
+        console.error("❌ Transaction Recategorize Error:", txErr.message);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      inserted
+      inserted,
+      recategorized,
     });
 
   } catch (err) {

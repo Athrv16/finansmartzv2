@@ -1,5 +1,6 @@
 import { Body, Container, Head, Heading, Html, Preview, Section, Text } from "@react-email/components";
 import * as React from "react";
+import { getCategoryName } from "@/data/categories";
 
 export default function EmailTemplate({
   userName = "",
@@ -53,7 +54,7 @@ export default function EmailTemplate({
                 {Object.entries(data.stats.byCategory).map(
                   ([category, amount]) => (
                     <div key={category} style={styles.row}>
-                      <Text style={styles.text}>{category}</Text>
+                      <Text style={styles.text}>{getCategoryName(category)}</Text>
                       <Text style={styles.text}>${amount}</Text>
                     </div>
                   )
@@ -111,6 +112,42 @@ export default function EmailTemplate({
                 </Text>
               </div>
             </Section>
+          </Container>
+        </Body>
+      </Html>
+    );
+  }
+
+  if (type === "bill-reminder") {
+    const bills = Array.isArray(data?.bills) ? data.bills : [];
+    return (
+      <Html>
+        <Head />
+        <Preview>Upcoming bill reminders</Preview>
+        <Body style={styles.body}>
+          <Container style={styles.container}>
+            <Heading style={styles.title}>Upcoming Bills</Heading>
+            <Text style={styles.text}>Hello {userName},</Text>
+            <Text style={styles.text}>
+              Here are your upcoming bills due soon:
+            </Text>
+
+            {bills.length > 0 ? (
+              <Section style={styles.section}>
+                {bills.map((bill) => (
+                  <div key={`${bill.name}-${bill.dueDate}`} style={styles.row}>
+                    <Text style={styles.text}>
+                      {bill.name} • {bill.amount}
+                    </Text>
+                    <Text style={styles.text}>{bill.dueDate}</Text>
+                  </div>
+                ))}
+              </Section>
+            ) : (
+              <Text style={styles.text}>
+                No upcoming bills were found.
+              </Text>
+            )}
           </Container>
         </Body>
       </Html>

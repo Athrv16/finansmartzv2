@@ -287,3 +287,70 @@ export async function updateTransaction(id , data) {
     }
     
 }
+
+export async function getRecurringTransactions() {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+        where: { clerkUserId: userId },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const transactions = await db.transaction.findMany({
+        where: {
+            userId: user.id,
+            OR: [
+                { isRecurring: true },
+                { recurringInterval: { not: null } },
+            ],
+        },
+        include: {
+            account: true,
+        },
+        orderBy: {
+            nextRecurringDate: "asc",
+        },
+    });
+
+    return transactions.map(serializeAmount);
+}
+
+export async function toggleRecurringTransaction(id, enable, recurringInterval) {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+        where: { clerkUserId: userId },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const transaction = await db.transaction.findUnique({
+        where: { id, userId: user.id },
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+
+    const interval = recurringInterval || transaction.recurringInterval;
+    if (enable && !interval) throw new Error("Recurring interval is required");
+
+    const nextRecurringDate = enable
+        ? calculateNextRecurringDate(new Date(), interval)
+        : null;
+
+    const updated = await db.transaction.update({
+        where: { id, userId: user.id },
+        data: {
+            isRecurring: Boolean(enable),
+            recurringInterval: interval || transaction.recurringInterval,
+            nextRecurringDate,
+        },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/account/${transaction.accountId}`);
+
+    return { success: true, data: serializeAmount(updated) };
+}
