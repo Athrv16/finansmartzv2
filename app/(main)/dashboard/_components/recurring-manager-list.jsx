@@ -2,11 +2,11 @@
 
 import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import useFetch from "@/hooks/use-fetch";
-import { toggleRecurringTransaction } from "@/actions/transaction";
+import { deleteRecurringTransaction, toggleRecurringTransaction } from "@/actions/transaction";
 import { getCategoryName } from "@/data/categories";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -22,11 +22,23 @@ const RecurringManagerList = ({
     data: toggleResult,
   } = useFetch(toggleRecurringTransaction);
 
+  const {
+    loading: deleteLoading,
+    fn: deleteFn,
+    data: deleteResult,
+  } = useFetch(deleteRecurringTransaction);
+
   useEffect(() => {
     if (toggleResult?.success) {
       toast.success("Recurring rule updated");
     }
   }, [toggleResult]);
+
+  useEffect(() => {
+    if (deleteResult?.success) {
+      toast.success("Recurring transaction deleted");
+    }
+  }, [deleteResult]);
 
   const hasItems = transactions && transactions.length > 0;
 
@@ -36,6 +48,14 @@ const RecurringManagerList = ({
     if (!next) return "No upcoming recurring dates.";
     return `${next.description || "Recurring item"} on ${format(new Date(next.nextRecurringDate), "PP")}`;
   }, [hasItems, transactions]);
+
+  const handleDelete = async (transaction) => {
+    if (!window.confirm(`Delete "${transaction.description || "this recurring transaction"}"?`)) {
+      return;
+    }
+
+    await deleteFn(transaction.id);
+  };
 
   return (
     <div className="space-y-3">
@@ -89,6 +109,16 @@ const RecurringManagerList = ({
               <Link href={`/transaction/create?edit=${transaction.id}`} aria-label="Edit recurring transaction">
                 <Pencil className="h-4 w-4 text-blue-500" />
               </Link>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              type="button"
+              disabled={deleteLoading}
+              onClick={() => handleDelete(transaction)}
+              aria-label="Delete recurring transaction"
+            >
+              <Trash className="h-4 w-4 text-red-500" />
             </Button>
           </div>
         </div>

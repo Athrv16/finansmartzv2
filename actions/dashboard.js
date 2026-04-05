@@ -3,8 +3,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import AssistantChat from "@/components/AssistantChat";
-import { seedFromCsvForUser } from "@/actions/seed";
 
 const serialzeTransaction = (obj) => {
     const serialized = {...obj};
@@ -95,21 +93,6 @@ export async function getUserAccounts(){
             },
         },
     });
-
-        if (accounts.length === 0) {
-            await seedFromCsvForUser();
-            accounts = await db.account.findMany({
-                where: {userId: user.id},
-                orderBy: {createdAt: "desc"},
-                include: {
-                    _count: {
-                        select: {
-                            transactions: true,
-                        },
-                    },
-                },
-            });
-        }
 
         const serializedAccount = accounts.map(serialzeTransaction);
 

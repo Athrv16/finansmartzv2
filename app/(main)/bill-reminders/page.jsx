@@ -1,9 +1,14 @@
 import React from "react";
 import { getBills } from "@/actions/bills";
+import { getCurrentBudget } from "@/actions/budget";
+import { getUserAccounts } from "@/actions/dashboard";
 import BillRemindersWorkspace from "./_components/bill-reminders-workspace";
 
 export default async function BillRemindersPage() {
   const bills = await getBills();
+  const accounts = await getUserAccounts();
+  const defaultAccount = accounts?.find((account) => account.isDefault);
+  const budgetData = defaultAccount ? await getCurrentBudget(defaultAccount.id) : null;
 
   return (
     <div
@@ -26,7 +31,10 @@ export default async function BillRemindersPage() {
         </div>
       </section>
 
-      <BillRemindersWorkspace bills={bills} />
+      <BillRemindersWorkspace
+        bills={bills}
+        monthlyBudget={budgetData?.budget?.amount ?? null}
+      />
     </div>
   );
 }

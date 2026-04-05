@@ -25,6 +25,7 @@ model User {
   accounts      Account[]
   budgets       Budget[]
   bills         Bill[]
+  vaultDocuments VaultDocument[]
   chatMessages  ChatMessage[]
   goals         Goal[]
   createdAt     DateTime      @default(now())
@@ -93,6 +94,18 @@ enum RecurringInterval {
   YEARLY
 }
 
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
+  SKIPPED
+}
+
+enum BillPriority {
+  ESSENTIAL
+  FLEXIBLE
+}
+
 enum TransactionStatus {
   PENDING
   COMPLETED
@@ -117,11 +130,29 @@ model Bill {
   id               String            @id @default(uuid())
   name             String
   amount           Decimal
+  estimatedAmount  Decimal?
+  lastPaidAmount   Decimal?
+  paidAmount       Decimal           @default(0)
   dueDate          DateTime
   nextDueDate      DateTime
   isRecurring      Boolean           @default(false)
   recurringInterval RecurringInterval?
+  status           BillStatus        @default(PENDING)
+  category         String?
+  priority         BillPriority      @default(ESSENTIAL)
+  isAutoPay        Boolean           @default(false)
+  isVariableAmount Boolean           @default(false)
+  reminderDays     Int[]             @default([7, 3, 1, 0])
+  sentReminderOffsets Int[]          @default([])
   lastReminderSent DateTime?
+  lastOverdueReminderSent DateTime?
+  paidAt           DateTime?
+  paymentProof     String?
+  notes            String?
+  sharedWith       String[]          @default([])
+  splitConfig      Json?
+  paymentHistory   Json?
+  missedPaymentCount Int             @default(0)
   userId           String
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime          @default(now())
@@ -157,5 +188,21 @@ model ChatMessage {
 
   @@index([userId])
   @@map("chat_messages")
+}
+
+model VaultDocument {
+  id          String   @id @default(uuid())
+  title       String
+  type        String
+  url         String?
+  note        String?
+  tag         String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("vault_documents")
 }
 

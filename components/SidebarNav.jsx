@@ -3,13 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, ChevronLeft, ChevronRight, Info, LayoutDashboard, Mail, Menu, PenBox, RefreshCw, TrendingUp, X } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  FolderLock,
+  Info,
+  LayoutDashboard,
+  Mail,
+  Menu,
+  PenBox,
+  RefreshCw,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/investments", label: "Investments", icon: TrendingUp },
+  { href: "/financial-health", label: "Health Score", icon: Activity },
+  { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/document-vault", label: "Document Vault", icon: FolderLock },
+  { href: "/investments", label: "Investment Portfolio", icon: TrendingUp },
   { href: "/transaction/create", label: "Transactions", icon: PenBox },
   { href: "/bill-reminders", label: "Bill Reminder", icon: Bell },
   { href: "/recurring-manager", label: "Recurring Manager", icon: RefreshCw },

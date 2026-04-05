@@ -139,7 +139,10 @@ export default function EmailTemplate({
                     <Text style={styles.text}>
                       {bill.name} • {bill.amount}
                     </Text>
-                    <Text style={styles.text}>{bill.dueDate}</Text>
+                    <Text style={styles.text}>
+                      {bill.dueDate}
+                      {bill.status ? ` • ${bill.status}` : ""}
+                    </Text>
                   </div>
                 ))}
               </Section>

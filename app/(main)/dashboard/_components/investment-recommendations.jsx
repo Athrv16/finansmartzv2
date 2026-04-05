@@ -57,52 +57,6 @@ export default function InvestmentRecommendations() {
   }, [risk, horizonYears]);
 
   useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await fetch(`/api/investment-recommendations?${queryString}`, {
-          cache: 'no-store',
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || 'Failed to load recommendations');
-        }
-        const payload = await res.json();
-        if (active) {
-          setData(payload);
-          if (payload?.profile && !userInputRef.current) {
-            setIncomeInput(
-              payload.profile.monthlyIncome !== null && payload.profile.monthlyIncome !== undefined
-                ? String(Math.round(payload.profile.monthlyIncome))
-                : ''
-            );
-            setExpenseInput(
-              payload.profile.monthlyExpenses !== null && payload.profile.monthlyExpenses !== undefined
-                ? String(Math.round(payload.profile.monthlyExpenses))
-                : ''
-            );
-          }
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message || String(err));
-          setData(null);
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      active = false;
-    };
-  }, [queryString]);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const raw = window.localStorage.getItem(storageKey);
@@ -140,8 +94,9 @@ export default function InvestmentRecommendations() {
   const allocation = recommendations?.allocation;
   const recs = recommendations?.recommendations || [];
 
-  const parsedIncome = incomeInput !== '' ? parseNumberInput(incomeInput) : profile?.monthlyIncome ?? null;
-  const parsedExpenses = expenseInput !== '' ? parseNumberInput(expenseInput) : profile?.monthlyExpenses ?? null;
+  const parsedIncome = parseNumberInput(incomeInput);
+  const parsedExpenses = parseNumberInput(expenseInput);
+  const hasCompletedInputs = parsedIncome !== null && parsedExpenses !== null;
   const savingsRate = parsedIncome && parsedIncome > 0 && parsedExpenses !== null
     ? ((parsedIncome - parsedExpenses) / parsedIncome) * 100
     : null;
@@ -206,6 +161,7 @@ export default function InvestmentRecommendations() {
 
   useEffect(() => {
     if (!userInputRef.current) return;
+    if (!hasCompletedInputs) return;
     if (validationErrors.length > 0) return;
     if (loading) return;
 
@@ -214,7 +170,15 @@ export default function InvestmentRecommendations() {
     }, 500);
 
     return () => clearTimeout(handle);
-  }, [incomeInput, expenseInput, validationErrors]);
+  }, [incomeInput, expenseInput, validationErrors, hasCompletedInputs]);
+
+  useEffect(() => {
+    if (!userInputRef.current) return;
+    if (!hasCompletedInputs) return;
+    if (validationErrors.length > 0) return;
+
+    handleApplyProfile('selection-change');
+  }, [queryString]);
 
   const cashFlowWarning = recommendations?.warnings?.find(
     (warning) => warning === 'Spending exceeds income; stabilize cash flow first.'
@@ -301,18 +265,6 @@ export default function InvestmentRecommendations() {
                 />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleApplyProfile}
-              disabled={validationErrors.length > 0}
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
-                validationErrors.length > 0
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              }`}
-            >
-              Apply
-            </button>
           </div>
         </div>
 
@@ -344,8 +296,38 @@ export default function InvestmentRecommendations() {
           </div>
         )}
 
-        {!loading && !error && recommendations && (
+        {!loading && !error && !hasCompletedInputs && (
+          <div className="rounded-2xl border border-dashed border-slate-300/80 bg-slate-50/80 p-5 text-sm text-muted-foreground dark:border-slate-700/80 dark:bg-slate-900/50">
+            Fill in your monthly income and monthly expenses to unlock personalized investment recommendations.
+          </div>
+        )}
+
+        {!loading && !error && hasCompletedInputs && recommendations && (
           <div className="space-y-6">
+            {recommendations?.strategy ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                  <TrendingUp className="h-4 w-4" />
+                  Strategy outlook
+                </div>
+                <h4 className="mt-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {recommendations.strategy.title}
+                </h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {recommendations.strategy.description}
+                </p>
+                {recommendations?.strategyHighlights?.length > 0 ? (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {recommendations.strategyHighlights.map((item) => (
+                      <div key={item} className="rounded-xl border border-emerald-200/70 bg-white/80 px-3 py-2 text-sm text-slate-700 dark:border-emerald-900/50 dark:bg-slate-950/40 dark:text-slate-200">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {!gateRecommendations && cashFlowWarning && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
                 {cashFlowWarning}
@@ -485,6 +467,25 @@ export default function InvestmentRecommendations() {
                 {recommendations.notes.map((note) => (
                   <p key={note}>{note}</p>
                 ))}
+              </div>
+            )}
+
+            {!gateRecommendations && recommendations?.sources?.length > 0 && (
+              <div className="rounded-2xl border border-border/60 bg-slate-50/80 p-4 text-xs text-muted-foreground dark:bg-slate-900/60">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">Educational sources used for the strategy framing</p>
+                <div className="mt-2 space-y-1">
+                  {recommendations.sources.map((source) => (
+                    <a
+                      key={source.url}
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block underline-offset-4 hover:underline"
+                    >
+                      {source.label}
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
 
