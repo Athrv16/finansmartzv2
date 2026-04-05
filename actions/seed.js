@@ -5,6 +5,7 @@ import { subDays } from "date-fns";
 import { auth } from "@clerk/nextjs/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { revalidatePath } from "next/cache";
 
 const ACCOUNT_ID = "0f8a3942-3130-4ba6-b275-e393f299622c";
 const USER_ID = "97e1787e-0d22-4284-899b-fe2a8477e460";
@@ -228,6 +229,8 @@ export async function seedFromCsvForUser({ overwrite = false } = {}) {
       data: { balance: { increment: delta } },
     });
   }
+
+  revalidatePath("/dashboard");
 
   return {
     success: true,

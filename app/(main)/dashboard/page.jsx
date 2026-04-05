@@ -8,6 +8,7 @@ import AccountCard from "./_components/account-card";
 import { getCurrentBudget } from "@/actions/budget";
 import DashboardOverview from "./_components/transaction-overview";
 import GmailConnectCard from "@/components/gmail-connect-card";
+import LoadDemoDataCard from "./_components/load-demo-data-card";
 
 
 
@@ -110,6 +111,15 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
           </CardContent>
         </Card>
       </CreateAccountDrawer>
+
+      {accounts.length === 0 && (
+        <div
+          className="animate-slide-up"
+          style={{ animation: 'slideUp 0.7s cubic-bezier(0.4,0,0.2,1)' }}
+        >
+          <LoadDemoDataCard />
+        </div>
+      )}
 
       {accounts.length>0 && accounts?.map((account)=>{
         return (

@@ -84,35 +84,49 @@ export async function POST() {
           categoryModel
         );
 
-        // ⭐ UPSERT → prevents duplicates completely
-        const result = await prisma.transaction.upsert({
-          where: {
-            upiTransactionId: tx.id
-          },
-          update: {}, // Do nothing if already exists
-          create: {
-            type: tx.type === "DEBIT" ? "EXPENSE" : "INCOME",
+        const type = tx.type === "DEBIT" ? "EXPENSE" : "INCOME";
+        const amount = Number(tx.amount);
+        const balanceChange = type === "EXPENSE" ? -amount : amount;
 
-            amount: Number(tx.amount),
+        const wasInserted = await prisma.$transaction(async (dbTx) => {
+          const existingTransaction = await dbTx.transaction.findUnique({
+            where: { upiTransactionId: tx.id },
+            select: { id: true },
+          });
 
-            description: tx.merchant || "UPI Transaction",
-
-            date:
-              tx.transaction_time ||
-              tx.created_at ||
-              new Date(),
-
-            category: category || "other-expense",
-
-            userId: user.id,
-            accountId: account.id,
-
-            upiTransactionId: tx.id
+          if (existingTransaction) {
+            return false;
           }
+
+          await dbTx.transaction.create({
+            data: {
+              type,
+              amount,
+              description: tx.merchant || "UPI Transaction",
+              date:
+                tx.transaction_time ||
+                tx.created_at ||
+                new Date(),
+              category: category || "other-expense",
+              userId: user.id,
+              accountId: account.id,
+              upiTransactionId: tx.id,
+            },
+          });
+
+          await dbTx.account.update({
+            where: { id: account.id },
+            data: {
+              balance: {
+                increment: balanceChange,
+              },
+            },
+          });
+
+          return true;
         });
 
-        // Count only if created (not updated)
-        if (result) inserted++;
+        if (wasInserted) inserted++;
 
       } catch (txErr) {
         console.error("❌ Transaction Import Error:", txErr.message);

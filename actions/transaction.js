@@ -354,3 +354,45 @@ export async function toggleRecurringTransaction(id, enable, recurringInterval) 
 
     return { success: true, data: serializeAmount(updated) };
 }
+
+export async function deleteRecurringTransaction(id) {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+        where: { clerkUserId: userId },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const transaction = await db.transaction.findUnique({
+        where: { id, userId: user.id },
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+
+    const balanceDelta = transaction.type === "EXPENSE"
+        ? Number(transaction.amount)
+        : -Number(transaction.amount);
+
+    await db.$transaction(async (tx) => {
+        await tx.transaction.delete({
+            where: { id, userId: user.id },
+        });
+
+        await tx.account.update({
+            where: { id: transaction.accountId },
+            data: {
+                balance: {
+                    increment: balanceDelta,
+                },
+            },
+        });
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/account/${transaction.accountId}`);
+    revalidatePath("/recurring-manager");
+
+    return { success: true };
+}
