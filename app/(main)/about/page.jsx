@@ -71,7 +71,7 @@ export default function AboutPage() {
           <p className="mt-4 text-base text-muted-foreground md:text-lg">
             FinanSmartz is a modern finance platform that brings budgets, cashflow,
             transactions, and market context into a single command center. Our goal is
-            to make every financial decision feel informed, fast, and low‑stress.
+            to make every financial decision feel informed, fast, and low-stress.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/dashboard">
@@ -123,7 +123,7 @@ export default function AboutPage() {
                 matters and automating the rest.
               </p>
               <p>
-                From real‑time spending insights to proactive alerts, we help you
+                From real-time spending insights to proactive alerts, we help you
                 stay ahead of surprises and in control of your next move.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -185,7 +185,7 @@ export default function AboutPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
                 <LineChart className="h-5 w-5" />
               </div>
-              <CardTitle className="text-base font-semibold">Real‑time insight</CardTitle>
+              <CardTitle className="text-base font-semibold">Real-time insight</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Live dashboards, smart summaries, and cashflow forecasts you can trust.
@@ -199,7 +199,7 @@ export default function AboutPage() {
               <CardTitle className="text-base font-semibold">Global readiness</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              Built to handle multi‑account, multi‑currency, and cross‑border workflows.
+              Built to handle multi-account, multi-currency, and cross-border workflows.
             </CardContent>
           </Card>
         </div>
@@ -251,36 +251,10 @@ export default function AboutPage() {
               Granular permissions limit data exposure and reduce risk.
             </div>
             <div className="rounded-2xl border border-border/60 bg-slate-50/70 p-4 dark:bg-slate-900/50">
-              Transparent data practices with clear, user‑friendly controls.
+              Transparent data practices with clear, user-friendly controls.
             </div>
           </CardContent>
         </Card>
-      </section>
-
-      <section className="mx-auto max-w-6xl">
-        <div className="rounded-3xl border border-blue-200/60 bg-gradient-to-r from-blue-50/80 via-white/80 to-emerald-50/80 px-6 py-10 text-center shadow-sm dark:border-slate-700/60 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
-          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Ready to build your financial command center?
-          </h2>
-          <p className="mt-3 text-sm text-muted-foreground md:text-base">
-            Join FinanSmartz and get a clean, real‑time view of everything that matters.
-          </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/dashboard">
-              <Button className="rounded-full bg-slate-900 px-8 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
-                Get started
-              </Button>
-            </Link>
-            <Link href="/transaction/create">
-              <Button
-                variant="outline"
-                className="rounded-full border-blue-200 bg-white/80 px-8 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-slate-900"
-              >
-                See it in action
-              </Button>
-            </Link>
-          </div>
-        </div>
       </section>
     </div>
   );

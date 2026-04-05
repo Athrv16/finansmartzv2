@@ -6,6 +6,11 @@ const fallbackIndices = [
   { name: "NIFTY 50", symbol: "^NSEI", value: 25088.4, change: 260.95, up: true },
   { name: "BANK NIFTY", symbol: "^NSEBANK", value: 58619, change: 201.8, up: true },
   { name: "SENSEX", symbol: "^BSESN", value: 81666.46, change: 943.52, up: true },
+  { name: "Reliance", symbol: "RELIANCE.NS", value: 2948.7, change: 31.2, up: true },
+  { name: "TCS", symbol: "TCS.NS", value: 4126.45, change: 24.85, up: true },
+  { name: "Infosys", symbol: "INFY.NS", value: 1538.3, change: -12.4, up: false },
+  { name: "HDFC Bank", symbol: "HDFCBANK.NS", value: 1682.9, change: 14.55, up: true },
+  { name: "ICICI Bank", symbol: "ICICIBANK.NS", value: 1189.4, change: 9.8, up: true },
 ]
 
 const formatNumber = (value) => {
@@ -52,7 +57,7 @@ export default function MarketTicker() {
   }, [])
 
   return (
-    <div className="w-full max-w-[520px] overflow-hidden rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-slate-700 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-100 sm:px-6">
+    <div className="w-full overflow-hidden rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-slate-700 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-100 sm:px-6">
       <div className="flex items-center gap-8 whitespace-nowrap animate-ticker text-sm font-medium sm:text-base hover:[animation-play-state:paused]">
         {indices.map((i) => (
           <div key={i.name} className="flex items-center gap-3 min-w-max">

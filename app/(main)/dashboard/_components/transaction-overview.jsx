@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getCategoryName, normalizeCategoryId } from "@/data/categories";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
@@ -14,6 +15,8 @@ const DashboardOverview = ({ accounts, transactions }) => {
   const [selectedAccountId, setSelectedAccountId] = useState(
     accounts.find((a) => a.isDefault)?.id || accounts[0]?.id
   );
+  const [selectedCategoryId, setSelectedCategoryId] = useState("all");
+  const [comparisonView, setComparisonView] = useState("breakdown");
   const [liveTransactions, setLiveTransactions] = useState(transactions || []);
 
   useEffect(() => {
@@ -58,33 +61,141 @@ const DashboardOverview = ({ accounts, transactions }) => {
     [accountTransactions]
   );
 
-  const currentMonthExpenses = useMemo(() => {
+  const currentMonthTransactions = useMemo(() => {
     const currentDate = new Date();
     return accountTransactions.filter((t) => {
       const transactionDate = new Date(t.date);
       return (
-        t.type === "EXPENSE" &&
         transactionDate.getMonth() === currentDate.getMonth() &&
         transactionDate.getFullYear() === currentDate.getFullYear()
       );
     });
   }, [accountTransactions]);
 
-  const pieChartData = useMemo(() => {
-    const expensesByCategory = currentMonthExpenses.reduce((acc, transaction) => {
-      const category = transaction.category;
-      if (!acc[category]) {
-        acc[category] = 0;
-      }
-      acc[category] += transaction.amount;
+  const lastMonthTransactions = useMemo(() => {
+    const currentDate = new Date();
+    const lastMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    return accountTransactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      return (
+        transactionDate.getMonth() === lastMonthDate.getMonth() &&
+        transactionDate.getFullYear() === lastMonthDate.getFullYear()
+      );
+    });
+  }, [accountTransactions]);
+
+  const currentMonthExpenses = useMemo(
+    () => currentMonthTransactions.filter((t) => t.type === "EXPENSE"),
+    [currentMonthTransactions]
+  );
+
+  const lastMonthExpenses = useMemo(
+    () => lastMonthTransactions.filter((t) => t.type === "EXPENSE"),
+    [lastMonthTransactions]
+  );
+
+  const currentMonthIncome = useMemo(
+    () => currentMonthTransactions.filter((t) => t.type === "INCOME"),
+    [currentMonthTransactions]
+  );
+
+  const lastMonthIncome = useMemo(
+    () => lastMonthTransactions.filter((t) => t.type === "INCOME"),
+    [lastMonthTransactions]
+  );
+
+  const smartSummary = useMemo(() => {
+    const currentByCategory = currentMonthExpenses.reduce((acc, transaction) => {
+      const categoryId = normalizeCategoryId(transaction.category);
+      acc[categoryId] = (acc[categoryId] || 0) + transaction.amount;
       return acc;
     }, {});
 
-    return Object.entries(expensesByCategory).map(([category, amount]) => ({
-      name: category,
+    const lastByCategory = lastMonthExpenses.reduce((acc, transaction) => {
+      const categoryId = normalizeCategoryId(transaction.category);
+      acc[categoryId] = (acc[categoryId] || 0) + transaction.amount;
+      return acc;
+    }, {});
+
+    let topIncrease = null;
+    Object.keys(currentByCategory).forEach((categoryId) => {
+      const delta = (currentByCategory[categoryId] || 0) - (lastByCategory[categoryId] || 0);
+      if (!topIncrease || delta > topIncrease.delta) {
+        topIncrease = { categoryId, delta };
+      }
+    });
+
+    const largestExpense = currentMonthExpenses.reduce(
+      (largest, transaction) =>
+        transaction.amount > largest.amount
+          ? { description: transaction.description || "Untitled", amount: transaction.amount }
+          : largest,
+      { description: "No expenses", amount: 0 }
+    );
+
+    const currentNet =
+      currentMonthIncome.reduce((sum, t) => sum + t.amount, 0) -
+      currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+    const lastNet =
+      lastMonthIncome.reduce((sum, t) => sum + t.amount, 0) -
+      lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+    const netDelta = currentNet - lastNet;
+
+    return {
+      topIncrease,
+      largestExpense,
+      netDelta,
+    };
+  }, [currentMonthExpenses, lastMonthExpenses, currentMonthIncome, lastMonthIncome]);
+
+  const availableCategories = useMemo(() => {
+    const uniqueCategories = new Map();
+    currentMonthExpenses.forEach((transaction) => {
+      const categoryId = normalizeCategoryId(transaction.category);
+      if (!uniqueCategories.has(categoryId)) {
+        uniqueCategories.set(categoryId, getCategoryName(categoryId));
+      }
+    });
+
+    return Array.from(uniqueCategories.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [currentMonthExpenses]);
+
+  useEffect(() => {
+    if (selectedCategoryId === "all") {
+      return;
+    }
+    const hasCategory = availableCategories.some((category) => category.id === selectedCategoryId);
+    if (!hasCategory) {
+      setSelectedCategoryId("all");
+    }
+  }, [availableCategories, selectedCategoryId]);
+
+  const filteredExpenses = useMemo(() => {
+    if (selectedCategoryId === "all") {
+      return currentMonthExpenses;
+    }
+    return currentMonthExpenses.filter(
+      (transaction) => normalizeCategoryId(transaction.category) === selectedCategoryId
+    );
+  }, [currentMonthExpenses, selectedCategoryId]);
+
+  const pieChartData = useMemo(() => {
+    const expensesByCategory = filteredExpenses.reduce((acc, transaction) => {
+      const categoryId = normalizeCategoryId(transaction.category);
+      if (!acc[categoryId]) {
+        acc[categoryId] = 0;
+      }
+      acc[categoryId] += transaction.amount;
+      return acc;
+    }, {});
+
+    return Object.entries(expensesByCategory).map(([categoryId, amount]) => ({
+      name: getCategoryName(categoryId),
       value: amount,
     }));
-  }, [currentMonthExpenses]);
+  }, [filteredExpenses]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -142,11 +253,69 @@ const DashboardOverview = ({ accounts, transactions }) => {
       </Card>
 
       <Card className="border-border/60 bg-white/85 shadow-sm dark:bg-slate-900/70">
-        <CardHeader className="border-b border-border/60 pb-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/60 pb-4">
           <CardTitle className="text-base font-semibold">Monthly Expense Breakdown</CardTitle>
+          <div className="flex items-center gap-2">
+            <Select value={comparisonView} onValueChange={setComparisonView}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="View" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="breakdown">Breakdown</SelectItem>
+                <SelectItem value="compare">Compare</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {availableCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="p-0 pb-5 pt-4">
-          {pieChartData.length === 0 ? (
+          {comparisonView === "compare" ? (
+            <div className="mx-4 space-y-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>This month expenses</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  ₹{currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0).toFixed(0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Last month expenses</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  ₹{lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0).toFixed(0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Delta</span>
+                {(() => {
+                  const delta =
+                    currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0) -
+                    lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+
+                  return (
+                <span
+                  className={cn(
+                    "font-semibold",
+                    delta < 0 ? "text-red-600" : "text-emerald-600"
+                  )}
+                >
+                  {delta >= 0 ? "+" : "-"}₹{Math.abs(delta).toFixed(0)}
+                </span>
+                  );
+                })()}
+              </div>
+            </div>
+          ) : pieChartData.length === 0 ? (
             <div className="mx-4 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
               No expenses this month.
             </div>

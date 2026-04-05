@@ -9,6 +9,7 @@ export default function GmailConnectCard() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
   const syncTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -32,22 +33,55 @@ export default function GmailConnectCard() {
     syncTriggeredRef.current = true;
 
     setSyncing(true);
-    fetch("/api/gmail/sync-now", { method: "POST" })
+    setSyncError("");
+    runSyncNow()
       .catch((err) => {
         console.error("Gmail sync-now error", err);
+        setSyncError(err.message || "Gmail sync failed.");
       })
       .finally(() => {
         setSyncing(false);
       });
   }, [connected, loading]);
 
+  async function runSyncNow() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const res = await fetch("/api/gmail/sync-now", {
+        method: "POST",
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          data.code === "GMAIL_RECONNECT_REQUIRED"
+            ? "Gmail access expired. Please reconnect Gmail."
+            : data.message || "Gmail sync failed."
+        );
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw new Error("Sync is taking longer than expected. Please try again.");
+      }
+
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   const handleSyncNow = async () => {
     if (syncing) return;
     try {
       setSyncing(true);
-      await fetch("/api/gmail/sync-now", { method: "POST" });
+      setSyncError("");
+      await runSyncNow();
     } catch (err) {
       console.error("Gmail sync-now error", err);
+      setSyncError(err.message || "Gmail sync failed.");
     } finally {
       setSyncing(false);
     }
@@ -60,6 +94,7 @@ export default function GmailConnectCard() {
   const handleDisconnect = async () => {
     await fetch("/api/gmail/disconnect", { method: "POST" });
     setConnected(false);
+    setSyncError("");
   };
 
   return (
@@ -95,6 +130,11 @@ export default function GmailConnectCard() {
             ? "Gmail is connected. Your latest UPI transactions will appear automatically."
             : "Secure OAuth connection. We only read transaction-related emails."}
         </div>
+        {syncError && (
+          <div className="w-full text-xs font-medium text-rose-600">
+            {syncError}
+          </div>
+        )}
         {connected ? (
           <div className="flex items-center gap-2">
             <Button

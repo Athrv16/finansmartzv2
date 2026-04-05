@@ -37,10 +37,10 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
       className="space-y-8 px-2 pt-4 md:px-0 animate-fade-in"
       style={{ animation: 'fadeIn 0.7s cubic-bezier(0.4,0,0.2,1)' }}
     >
-    <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-50 via-white to-slate-100 p-6 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 transition-all duration-500 ease-out hover:shadow-xl">
+    <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-slate-50 via-white to-slate-100 p-6 md:p-8 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 transition-all duration-500 ease-out hover:shadow-xl">
       <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-blue-200/40 blur-2xl dark:bg-blue-500/10" />
       <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-indigo-200/30 blur-2xl dark:bg-indigo-500/10" />
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="section-title">Dashboard</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
@@ -48,32 +48,32 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">Track balances, recent activity, and monthly trends in one place.</p>
         </div>
-        <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-auto">
+        <div className="grid w-full gap-4 sm:grid-cols-3 lg:w-auto">
           <Card className="border-border/60 bg-white/80 shadow-sm dark:bg-slate-900/70 transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-            <CardContent className="flex items-center justify-between p-4">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
               <div>
                 <p className="text-xs text-muted-foreground">Total Balance</p>
-                <p className="text-lg font-semibold">₹{totalBalance.toFixed(2)}</p>
+                <p className="text-xl font-semibold">₹{totalBalance.toFixed(2)}</p>
               </div>
-              <Wallet className="h-5 w-5 text-slate-800 dark:text-slate-200" />
+              <Wallet className="h-7 w-7 text-slate-800 dark:text-slate-200" />
             </CardContent>
           </Card>
           <Card className="border-border/60 bg-white/80 shadow-sm dark:bg-slate-900/70 transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-            <CardContent className="flex items-center justify-between p-4">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
               <div>
                 <p className="text-xs text-muted-foreground">Accounts</p>
-                <p className="text-lg font-semibold">{accounts.length}</p>
+                <p className="text-xl font-semibold">{accounts.length}</p>
               </div>
-              <Landmark className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+              <Landmark className="h-6 w-6 text-blue-600 dark:text-blue-300" />
             </CardContent>
           </Card>
           <Card className="border-border/60 bg-white/80 shadow-sm dark:bg-slate-900/70 transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-            <CardContent className="flex items-center justify-between p-4">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
               <div>
                 <p className="text-xs text-muted-foreground">This Month Tx</p>
-                <p className="text-lg font-semibold">{monthlyTxCount}</p>
+                <p className="text-xl font-semibold">{monthlyTxCount}</p>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />
+              <ArrowUpRight className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
             </CardContent>
           </Card>
         </div>
@@ -85,7 +85,6 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
         currentExpenses={budgetData?.currentExpenses || 0}
       />
     <GmailConnectCard />
-
     {/* Overview */}
       <Suspense fallback={"Loading Overview..."}>
       
@@ -99,7 +98,6 @@ const defaultAccount = accounts?.find((account) => account.isDefault);
         />
 
       </Suspense>
-
 
     {/* Account Grid */} 
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

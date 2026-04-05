@@ -53,29 +53,6 @@ export const defaultCategories = [
     subcategories: ["Rent", "Mortgage", "Property Tax", "Maintenance"],
   },
   {
-    id: "transportation",
-    name: "Transportation",
-    type: "EXPENSE",
-    color: "#f97316", // orange-500
-    icon: "Car",
-    subcategories: ["Fuel", "Public Transport", "Maintenance", "Parking"],
-  },
-  {
-    id: "groceries",
-    name: "Groceries",
-    type: "EXPENSE",
-    color: "#84cc16", // lime-500
-    icon: "Shopping",
-  },
-  {
-    id: "utilities",
-    name: "Utilities",
-    type: "EXPENSE",
-    color: "#06b6d4", // cyan-500
-    icon: "Zap",
-    subcategories: ["Electricity", "Water", "Gas", "Internet", "Phone"],
-  },
-  {
     id: "entertainment",
     name: "Entertainment",
     type: "EXPENSE",
@@ -96,7 +73,13 @@ export const defaultCategories = [
     type: "EXPENSE",
     color: "#ec4899", // pink-500
     icon: "ShoppingBag",
-    subcategories: ["Clothing", "Electronics", "Home Goods"],
+  },
+  {
+    id: "travel",
+    name: "Travel",
+    type: "EXPENSE",
+    color: "#0ea5e9", // sky-500
+    icon: "Plane",
   },
   {
     id: "healthcare",
@@ -113,29 +96,6 @@ export const defaultCategories = [
     color: "#6366f1", // indigo-500
     icon: "GraduationCap",
     subcategories: ["Tuition", "Books", "Courses"],
-  },
-  {
-    id: "personal",
-    name: "Personal Care",
-    type: "EXPENSE",
-    color: "#d946ef", // fuchsia-500
-    icon: "Smile",
-    subcategories: ["Haircut", "Gym", "Beauty"],
-  },
-  {
-    id: "travel",
-    name: "Travel",
-    type: "EXPENSE",
-    color: "#0ea5e9", // sky-500
-    icon: "Plane",
-  },
-  {
-    id: "insurance",
-    name: "Insurance",
-    type: "EXPENSE",
-    color: "#64748b", // slate-500
-    icon: "Shield",
-    subcategories: ["Life", "Home", "Vehicle"],
   },
   {
     id: "gifts",
@@ -161,7 +121,44 @@ export const defaultCategories = [
   },
 ];
 
+export const categoryAliases = {
+  transportation: "travel",
+  travel: "travel",
+  groceries: "food",
+  food: "food",
+  utilities: "shopping",
+  shopping: "shopping",
+  personal: "shopping",
+};
+
+export const normalizeCategoryId = (categoryId) => {
+  if (!categoryId) return categoryId;
+  const normalizedId = categoryId.toString().trim().toLowerCase();
+  return categoryAliases[normalizedId] || normalizedId;
+};
+
+export const getCategoryById = (categoryId) => {
+  const normalizedId = normalizeCategoryId(categoryId);
+  return defaultCategories.find((category) => category.id === normalizedId);
+};
+
+export const getCategoryName = (categoryId) => {
+  const category = getCategoryById(categoryId);
+  return category?.name || categoryId;
+};
+
+export const getCategoryColor = (categoryId) => {
+  const category = getCategoryById(categoryId);
+  return category?.color;
+};
+
 export const categoryColors = defaultCategories.reduce((acc, category) => {
   acc[category.id] = category.color;
   return acc;
 }, {});
+
+Object.entries(categoryAliases).forEach(([alias, canonical]) => {
+  if (!categoryColors[alias] && categoryColors[canonical]) {
+    categoryColors[alias] = categoryColors[canonical];
+  }
+});
