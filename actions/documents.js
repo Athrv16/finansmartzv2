@@ -6,6 +6,13 @@ import { db } from "@/lib/prisma";
 import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { del, put } from "@vercel/blob";
+
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+
+const isBlobUrl = (url) =>
+  typeof url === "string" &&
+  (url.includes(".public.blob.vercel-storage.com/") || url.includes("blob.vercel-storage.com/"));
 
 const getCurrentUser = async () => {
   const { userId } = await auth();
@@ -24,6 +31,53 @@ const serializeDocument = (doc) => ({
   createdAt: doc.createdAt?.toISOString ? doc.createdAt.toISOString() : doc.createdAt,
   updatedAt: doc.updatedAt?.toISOString ? doc.updatedAt.toISOString() : doc.updatedAt,
 });
+
+const ensurePdf = (file) => {
+  const isPdfType = file.type === "application/pdf";
+  const hasPdfExtension = file.name?.toLowerCase().endsWith(".pdf");
+
+  if (!isPdfType && !hasPdfExtension) {
+    throw new Error("Only PDF documents are allowed");
+  }
+};
+
+const uploadPdf = async (file) => {
+  ensurePdf(file);
+
+  const safeName = `${randomUUID()}.pdf`;
+
+  if (BLOB_TOKEN) {
+    const blob = await put(`vault-documents/${safeName}`, file, {
+      access: "public",
+      token: BLOB_TOKEN,
+      contentType: "application/pdf",
+      addRandomSuffix: false,
+    });
+    return blob.url;
+  }
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "vault-documents");
+  await mkdir(uploadDir, { recursive: true });
+
+  const filePath = path.join(uploadDir, safeName);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(filePath, buffer);
+  return `/uploads/vault-documents/${safeName}`;
+};
+
+const deleteStoredPdf = async (url) => {
+  if (!url) return;
+
+  if (url.startsWith("/uploads/vault-documents/")) {
+    const filePath = path.join(process.cwd(), "public", url);
+    await unlink(filePath).catch(() => {});
+    return;
+  }
+
+  if (isBlobUrl(url) && BLOB_TOKEN) {
+    await del(url, { token: BLOB_TOKEN }).catch(() => {});
+  }
+};
 
 export async function getVaultDocuments() {
   const user = await getCurrentUser();
@@ -55,21 +109,11 @@ export async function createVaultDocument(data) {
   const file = payload?.file;
 
   if (file instanceof File && file.size > 0) {
-    const isPdfType = file.type === "application/pdf";
-    const hasPdfExtension = file.name?.toLowerCase().endsWith(".pdf");
-
-    if (!isPdfType && !hasPdfExtension) {
-      throw new Error("Only PDF documents are allowed");
+    try {
+      documentUrl = await uploadPdf(file);
+    } catch (error) {
+      throw new Error(error?.message || "Document upload failed. Please try again.");
     }
-
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "vault-documents");
-    await mkdir(uploadDir, { recursive: true });
-
-    const safeName = `${randomUUID()}.pdf`;
-    const filePath = path.join(uploadDir, safeName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-    documentUrl = `/uploads/vault-documents/${safeName}`;
   }
 
   const created = await db.vaultDocument.create({
@@ -115,25 +159,11 @@ export async function updateVaultDocument(id, data) {
   const file = payload?.file;
 
   if (file instanceof File && file.size > 0) {
-    const isPdfType = file.type === "application/pdf";
-    const hasPdfExtension = file.name?.toLowerCase().endsWith(".pdf");
-
-    if (!isPdfType && !hasPdfExtension) {
-      throw new Error("Only PDF documents are allowed");
-    }
-
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "vault-documents");
-    await mkdir(uploadDir, { recursive: true });
-
-    const safeName = `${randomUUID()}.pdf`;
-    const filePath = path.join(uploadDir, safeName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-    documentUrl = `/uploads/vault-documents/${safeName}`;
-
-    if (existing.url?.startsWith("/uploads/vault-documents/")) {
-      const previousPath = path.join(process.cwd(), "public", existing.url);
-      await unlink(previousPath).catch(() => {});
+    try {
+      documentUrl = await uploadPdf(file);
+      await deleteStoredPdf(existing.url);
+    } catch (error) {
+      throw new Error(error?.message || "Document upload failed. Please try again.");
     }
   }
 
@@ -166,10 +196,7 @@ export async function deleteVaultDocument(id) {
     where: { id, userId: user.id },
   });
 
-  if (existing.url?.startsWith("/uploads/vault-documents/")) {
-    const filePath = path.join(process.cwd(), "public", existing.url);
-    await unlink(filePath).catch(() => {});
-  }
+  await deleteStoredPdf(existing.url);
 
   revalidatePath("/document-vault");
   return { success: true };
