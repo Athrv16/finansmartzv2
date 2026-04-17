@@ -11,12 +11,19 @@ export async function GET() {
     }
 
     const res = await upiDb.query(
-      `SELECT id FROM upi_connections WHERE user_id = $1`,
+      `SELECT id, refresh_token, expiry FROM upi_connections WHERE user_id = $1`,
       [userId]
     );
 
+    const connection = res.rows[0];
+    const expired =
+      !connection ||
+      !connection.refresh_token ||
+      (connection.expiry && new Date(connection.expiry).getTime() <= Date.now());
+
     return NextResponse.json({
-      connected: res.rowCount > 0
+      connected: !expired,
+      expired,
     });
   } catch (error) {
     console.error("Gmail status check failed:", error);

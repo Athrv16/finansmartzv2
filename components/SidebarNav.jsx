@@ -8,6 +8,7 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  CalendarClock,
   FolderLock,
   Info,
   LayoutDashboard,
@@ -23,13 +24,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/financial-health", label: "Health Score", icon: Activity },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/document-vault", label: "Document Vault", icon: FolderLock },
   { href: "/investments", label: "Investment Portfolio", icon: TrendingUp },
   { href: "/transaction/create", label: "Transactions", icon: PenBox },
-  { href: "/bill-reminders", label: "Bill Reminder", icon: Bell },
   { href: "/recurring-manager", label: "Recurring Manager", icon: RefreshCw },
+  { href: "/bill-reminders", label: "Bill Reminder", icon: CalendarClock },
+  { href: "/document-vault", label: "Document Vault", icon: FolderLock },
+  { href: "/financial-health", label: "Health Score", icon: Activity },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/about", label: "About", icon: Info },
   { href: "/contact", label: "Contact", icon: Mail },
 ];

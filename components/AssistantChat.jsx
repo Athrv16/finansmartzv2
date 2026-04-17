@@ -1,61 +1,42 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import { useUser } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation'
 
-export default function AssistantChat() {
+export default function AssistantChat({ onActionsChange, onChatUpdate }) {
   const { user } = useUser()
-  const [messages, setMessages] = useState([
-    { id: 'sys-1', role: 'system', text: 'Hi, I am Sora — your AI assistant! \nHow can I help you today?' },
-  ])
+  const pathname = usePathname()
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [historyLoaded, setHistoryLoaded] = useState(false)
   const inputRef = useRef(null)
   const listRef = useRef(null)
+  const visibleMessages = messages
 
-  // Load chat history once per user
   useEffect(() => {
-    if (user && !historyLoaded) {
-      loadHistory()
-    }
-  }, [user, historyLoaded])
-
-  // Auto-scroll to the latest message
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTo({
-        top: listRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
-    }
+    if (!listRef.current) return
+    listRef.current.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: 'smooth',
+    })
   }, [messages])
 
-  // Load chat history from backend
-  async function loadHistory() {
-    try {
-      const res = await fetch('/api/assistant/history')
-      if (res.ok) {
-        const data = await res.json()
-        const historyMessages = data.messages.map((m) => ({
-          id: m.id,
-          role: m.role,
-          text: m.content,
-        }))
-        // Replace messages with system + history (not append)
-        setMessages([
-          { id: 'sys-1', role: 'system', text: 'Hi, I am Sora — your AI assistant! \nHow can I help you today?' },
-          ...historyMessages,
-        ])
-        setHistoryLoaded(true)
-      }
-    } catch (err) {
-      console.error('Failed to load history:', err)
-    }
+  useEffect(() => {
+    adjustTextareaHeight(inputRef.current)
+  }, [input])
+
+  function adjustTextareaHeight(element) {
+    if (!element) return
+    element.style.height = 'auto'
+    const maxHeight = 220
+    const nextHeight = Math.min(element.scrollHeight, maxHeight)
+    element.style.height = `${nextHeight}px`
+    element.style.overflowY = element.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }
 
-  // Save message to database
   async function saveMessage(role, content) {
     if (!user) return
     try {
@@ -69,36 +50,39 @@ export default function AssistantChat() {
     }
   }
 
-  // Delete all chat history
   async function deleteHistory() {
     if (!user) return
     try {
       const res = await fetch('/api/assistant/history', { method: 'DELETE' })
-      if (res.ok) {
-        setMessages([
-          { id: 'sys-1', role: 'system', text: 'Hi, I am Sora — your AI assistant! \nHow can I help you today?' },
-        ])
-        setHistoryLoaded(false)
-      }
+      if (!res.ok) return
+      setMessages([])
     } catch (err) {
       console.error('Failed to delete history:', err)
     }
   }
 
-  // Send message to assistant
   async function sendMessage(e) {
-    e && e.preventDefault()
+    e?.preventDefault()
     const text = input.trim()
     if (!text) return
 
     const userMsg = { id: `u-${Date.now()}`, role: 'user', text }
-    setMessages((prev) => [...prev, userMsg])
+    const isFirstUserMessage = messages.length === 0
+    const nextMessages = [...messages, userMsg]
+
+    setMessages(nextMessages)
     await saveMessage('user', text)
     setInput('')
     setLoading(true)
 
+    onChatUpdate?.({
+      title: text,
+      messages: nextMessages,
+      started: isFirstUserMessage,
+    })
+
     try {
-      const conversation = [...messages, userMsg].map((m) => ({
+      const conversation = nextMessages.map((m) => ({
         role: m.role,
         content: m.text,
       }))
@@ -106,7 +90,7 @@ export default function AssistantChat() {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversation }),
+        body: JSON.stringify({ messages: conversation, currentRoute: pathname || '/' }),
       })
 
       if (!res.ok) {
@@ -116,124 +100,161 @@ export default function AssistantChat() {
 
       const data = await res.json()
       const assistantText = data?.response || 'Sorry — I could not get an answer.'
-
-      const assistantMsg = {
+      const assistantMessage = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: assistantText,
       }
 
-      setMessages((prev) => [...prev, assistantMsg])
-      // Assistant message is saved automatically on backend
+      setMessages((prev) => [...prev, assistantMessage])
+
+      onChatUpdate?.({
+        title: text,
+        messages: [...nextMessages, assistantMessage],
+        started: isFirstUserMessage,
+      })
     } catch (err) {
-      const errMsg = {
+      const message = `Error: ${err.message || String(err)}`
+      const errorMessage = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        text: `Error: ${err.message || String(err)}`,
+        text: message,
       }
-      setMessages((prev) => [...prev, errMsg])
-      await saveMessage('assistant', `Error: ${err.message || String(err)}`)
+      const nextErrorMessages = [...nextMessages, errorMessage]
+      setMessages(nextErrorMessages)
+      await saveMessage('assistant', message)
+
+      onChatUpdate?.({
+        title: text,
+        messages: nextErrorMessages,
+        started: isFirstUserMessage,
+      })
     } finally {
       setLoading(false)
       inputRef.current?.focus()
     }
   }
 
-  // Quick prompt button handler
-  function quickPrompt(text) {
-    setInput(text)
-    setTimeout(() => inputRef.current?.focus(), 50)
+  function handleInputKeyDown(event) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+
+    event.preventDefault()
+    sendMessage(event)
   }
 
-  return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="rounded-2xl border border-border/60 bg-white/85 p-4 shadow-sm dark:bg-slate-900/70 flex flex-col gap-4">
-        {/* Header */}
-        <header className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Sora - AI Chatbot</h3>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              className="px-3 py-1 text-sm rounded-full border border-slate-200/60 bg-white/70 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:hover:bg-slate-900"
-              onClick={() =>
-                quickPrompt(
-                  'Create a 6-month savings plan for someone earning ₹60,000/month with a goal to save ₹1,00,000.'
-                )
-              }
-            >
-              Savings Plan
-            </button>
-            <button
-              className="px-3 py-1 text-sm rounded-full border border-slate-200/60 bg-white/70 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:hover:bg-slate-900"
-              onClick={() =>
-                quickPrompt(
-                  'Suggest 3 diversified investment ideas for a conservative investor with ₹2 lakh to invest for 3 years.'
-                )
-              }
-            >
-              Investment Ideas
-            </button>
-            {user && (
-              <button
-                className="px-3 py-1 text-sm rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                onClick={deleteHistory}
-              >
-                Delete All History
-              </button>
-            )}
-          </div>
-        </header>
+  useEffect(() => {
+    if (!onActionsChange) return undefined
 
-        {/* Chat Messages */}
+    onActionsChange({
+      deleteAllHistory: async () => {
+        await deleteHistory()
+      },
+      startNewChat: () => {
+        setMessages([])
+        setInput('')
+        setLoading(false)
+        setTimeout(() => inputRef.current?.focus(), 60)
+      },
+      getSnapshot: () => ({
+        messages,
+      }),
+      loadSnapshot: (snapshotMessages = []) => {
+        if (!Array.isArray(snapshotMessages) || snapshotMessages.length === 0) return
+        setMessages(snapshotMessages)
+        setInput('')
+        setLoading(false)
+        setTimeout(() => inputRef.current?.focus(), 60)
+      },
+    })
+
+    return () => {
+      onActionsChange(null)
+    }
+  }, [onActionsChange, messages])
+
+  return (
+    <div className="flex h-full min-h-0 flex-col p-2 md:p-3">
+      <div className="flex h-full min-h-0 flex-col gap-3 rounded-2xl border border-border/60 bg-white/85 p-4 shadow-sm dark:bg-slate-900/70">
         <div
           ref={listRef}
-          className="h-72 overflow-y-auto rounded-2xl border border-border/60 p-3 bg-slate-50/70 dark:bg-slate-900/60"
+          className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border/60 bg-slate-50/70 p-3 dark:bg-slate-900/60"
         >
-          {messages.map((m, index) => (
-            <div
-              key={`${m.role}-${m.id}-${index}`}
-              className={`mb-3 ${m.role === 'user' ? 'text-right' : 'text-left'}`}
-            >
-              <div
-                className={`inline-block p-3 rounded-2xl ${
-                  m.role === 'assistant'
-                    ? 'bg-slate-100 dark:bg-slate-800'
-                    : 'bg-blue-50 dark:bg-blue-900/30'
-                }`}
-              >
-                <div className="text-sm whitespace-pre-wrap">
-                  {m.role === 'assistant' ? (
-                    <ReactMarkdown>{m.text}</ReactMarkdown>
-                  ) : (
-                    m.text
-                  )}
+          {visibleMessages.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="text-center select-none">
+                <div className="relative mx-auto mb-3 flex h-18 w-18 items-center justify-center rounded-3xl border border-slate-200/70 bg-white/70 p-2 shadow-sm opacity-40 dark:border-slate-700/70 dark:bg-slate-900/40">
+                  <span className="absolute inset-0 -z-10 rounded-3xl bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.35),rgba(59,130,246,0.08)_45%,transparent_75%)] blur-2xl" />
+                  <span className="absolute inset-1 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.22),transparent_70%)] blur-xl" />
+                  <Image
+                    src="/logo.png"
+                    alt="FinanSmartz logo"
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 object-contain"
+                    priority={false}
+                  />
                 </div>
+                <p className="text-2xl font-semibold tracking-tight text-slate-900/25 dark:text-white/20">
+                  FinanSmartz
+                </p>
+                <p className="mt-2 text-sm text-slate-500/30 dark:text-slate-300/20">
+                  Start a conversation to see it here
+                </p>
               </div>
             </div>
-          ))}
+          ) : (
+            visibleMessages.map((m, index) => (
+              <div
+                key={`${m.role}-${m.id}-${index}`}
+                className={`mb-3 ${m.role === 'user' ? 'text-right' : 'text-left'}`}
+              >
+                <div
+                  className={`inline-block rounded-2xl p-3 ${
+                    m.role === 'assistant'
+                      ? 'bg-slate-100 dark:bg-slate-800'
+                      : 'bg-blue-50 dark:bg-blue-900/30'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap text-sm">
+                    {m.role === 'assistant' ? <ReactMarkdown>{m.text}</ReactMarkdown> : m.text}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+
+          {loading && (
+            <div className="mb-3 text-left">
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-3 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={sendMessage} className="flex gap-2 items-end">
+        <form onSubmit={sendMessage} className="flex items-end gap-2 md:gap-3">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleInputKeyDown}
             rows={2}
-            placeholder="Ask about budgeting, investments, goals..."
-            className="flex-1 p-3 rounded-2xl border border-border/60 resize-none bg-white/80 dark:bg-slate-900/70"
+            placeholder="Ask Anything..."
+            className="min-h-[52px] flex-1 resize-none rounded-2xl border border-border/60 bg-white/80 px-4 py-3 leading-5 dark:bg-slate-900/70"
           />
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2 rounded-2xl bg-slate-900 text-white shadow-sm disabled:opacity-50"
+            className="h-[52px] shrink-0 self-end rounded-2xl bg-slate-900 px-5 text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
           >
             {loading ? 'Thinking...' : 'Send'}
           </button>
         </form>
 
-        {/* Footer */}
         <footer className="text-xs text-muted-foreground">
-          Tip: Don’t share real bank details. Sora provides educational guidance — verify
+          Tip: Don&apos;t share real bank details. Sora provides educational guidance — verify
           with a certified advisor for legal or tax matters.
         </footer>
       </div>

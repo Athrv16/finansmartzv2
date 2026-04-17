@@ -26,7 +26,7 @@ export async function POST() {
 
     const res = await upiDb.query(
       `
-      SELECT user_id, access_token, refresh_token, last_synced_at
+      SELECT user_id, access_token, refresh_token, last_synced_at, expiry
       FROM upi_connections
       WHERE user_id = $1
       `,
@@ -41,6 +41,19 @@ export async function POST() {
     }
 
     const conn = res.rows[0];
+    const tokenExpired = conn.expiry && new Date(conn.expiry).getTime() <= Date.now();
+
+    if (!conn.refresh_token || tokenExpired) {
+      return NextResponse.json(
+        {
+          error: "Gmail connection expired",
+          message: "Please reconnect Gmail and try syncing again.",
+          code: "GMAIL_RECONNECT_REQUIRED",
+        },
+        { status: 401 }
+      );
+    }
+
     const oauthClient = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
