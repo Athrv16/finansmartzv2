@@ -2,7 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
 import FloatingChat from "@/components/FloatingChat";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, SignedIn } from "@clerk/nextjs";
 import { Toaster } from "sonner"
 import { ThemeProvider } from "next-themes";
 
@@ -41,7 +41,9 @@ export default function RootLayout({ children }) {
               </div>
             </div>
           </main>
-          <FloatingChat />
+          <SignedIn>
+            <FloatingChat />
+          </SignedIn>
           <Toaster richColors/>
         {/*footer*/}
         <footer className="bg-gray-50 dark:bg-gray-900 py-8">
