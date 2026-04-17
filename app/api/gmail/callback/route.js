@@ -21,16 +21,19 @@ export async function GET(req) {
   );
 
   const { tokens } = await oauth2Client.getToken(code);
+  const expiry = tokens.expiry_date
+    ? new Date(tokens.expiry_date)
+    : new Date(Date.now() + 60 * 60 * 1000);
 
   await upiDb.query(
     `
     INSERT INTO upi_connections
     (user_id, email, provider, access_token, refresh_token, expiry)
-    VALUES ($1, $2, 'gmail', $3, $4, NOW() + INTERVAL '1 hour')
+    VALUES ($1, $2, 'gmail', $3, $4, $5)
     ON CONFLICT (user_id, email)
     DO UPDATE SET
       access_token = EXCLUDED.access_token,
-      refresh_token = EXCLUDED.refresh_token,
+      refresh_token = COALESCE(EXCLUDED.refresh_token, upi_connections.refresh_token),
       expiry = EXCLUDED.expiry
     `,
     [
@@ -38,6 +41,7 @@ export async function GET(req) {
       "gmail",
       tokens.access_token,
       tokens.refresh_token,
+      expiry,
     ]
   );
 

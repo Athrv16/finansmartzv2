@@ -10,10 +10,31 @@ import { revalidatePath } from "next/cache";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const serializeAmount = (obj) => ({
-    ...obj,
-    amount : obj.amount.toNumber(),
-});
+const serializeValue = (value) => {
+    if (value === null || value === undefined) return value;
+
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+
+    if (typeof value?.toNumber === "function") {
+        return value.toNumber();
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(serializeValue);
+    }
+
+    if (typeof value === "object") {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, nestedValue]) => [key, serializeValue(nestedValue)])
+        );
+    }
+
+    return value;
+};
+
+const serializeAmount = (obj) => serializeValue(obj);
 
 export async function createTransaction(data) {
     try{

@@ -14,6 +14,7 @@ export async function POST(req) {
 
     const body = await req.json()
     const msgs = body.messages || []
+    const currentRoute = body.currentRoute || '/'
 
     const chatMessages = msgs.map(m => ({ role: m.role === 'user' ? 'user' : m.role === 'assistant' ? 'assistant' : 'system', content: m.content }))
 
@@ -24,9 +25,20 @@ export async function POST(req) {
       "Encourage building an emergency fund of 3–6 months of expenses before investing.",
     ].join(" ");
 
+    const appKnowledge = [
+      "You are Sora, the in-app Finansmartz assistant. Help users understand and use application features step-by-step.",
+      "Primary navigation includes: Dashboard, Investment Portfolio, Transactions, Recurring Manager, Bill Reminder, Document Vault, Health Score, Notifications, About, Contact.",
+      "Feature hints: Dashboard gives balances/activity overview; Transactions lets users create and track entries; Recurring Manager controls repeating payments/transfers; Bill Reminder handles due-date reminders and statuses; Document Vault stores uploaded financial files; Health Score summarizes financial wellness; Notifications shows alerts and pending issues; Investments helps portfolio planning and guidance.",
+      "When users ask 'how to' questions, respond with short numbered steps and mention the exact page to open first.",
+      "If a question appears related to the current page, prioritize that page's actions before suggesting other pages.",
+      "If data is missing or you are unsure, say what you need from the user instead of making up details.",
+      "Keep answers practical, concise, and UI-action oriented.",
+      "For legal/tax/regulatory topics, provide educational guidance and recommend a certified professional for final decisions.",
+    ].join(" ");
+
     const systemPrompt = {
       role: "system",
-      content: investmentGuardrails,
+      content: `${appKnowledge} Current user route: ${currentRoute}. ${investmentGuardrails}`,
     };
 
     const OPENAI_KEY = process.env.OPENAI_API_KEY
