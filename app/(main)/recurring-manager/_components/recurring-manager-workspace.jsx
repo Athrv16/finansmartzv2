@@ -143,12 +143,9 @@ const RecurringManagerWorkspace = ({ transactions }) => {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex justify-start">
             <Button asChild>
               <Link href="/transaction/create">Create New Recurring Transaction</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/transaction/create">Open Transaction Builder</Link>
             </Button>
           </div>
         </div>

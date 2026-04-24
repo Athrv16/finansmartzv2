@@ -287,28 +287,12 @@ const BillRemindersWorkspace = ({ bills, monthlyBudget = null }) => {
                 className="mt-2 w-full rounded-xl border border-border/60 bg-white/90 px-3 py-2 text-sm outline-none dark:bg-slate-900/70"
               />
             </div>
-            <div>
-              <label className="text-xs uppercase text-muted-foreground">Shared With</label>
-              <input
-                name="sharedWith"
-                placeholder="Mom, Roommate, Partner"
-                className="mt-2 w-full rounded-xl border border-border/60 bg-white/90 px-3 py-2 text-sm outline-none dark:bg-slate-900/70"
-              />
-            </div>
             <div className="md:col-span-2">
               <label className="text-xs uppercase text-muted-foreground">Notes / Transaction ID / Proof Link</label>
               <textarea
                 name="notes"
                 placeholder="Add instructions, meter notes, or payment comments"
                 className="mt-2 min-h-24 w-full rounded-xl border border-border/60 bg-white/90 px-3 py-2 text-sm outline-none dark:bg-slate-900/70"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs uppercase text-muted-foreground">Payment Proof URL</label>
-              <input
-                name="paymentProof"
-                placeholder="https://..."
-                className="mt-2 w-full rounded-xl border border-border/60 bg-white/90 px-3 py-2 text-sm outline-none dark:bg-slate-900/70"
               />
             </div>
             <div className="md:col-span-2 grid gap-3 sm:grid-cols-3">
